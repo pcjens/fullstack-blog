@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "watch": "nodemon index.js"
+    "test": "jest --verbose",
+    "watch": "nodemon index.js",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,11 @@
     "mongoose": "^5.3.13"
   },
   "devDependencies": {
+    "eslint": "^5.9.0",
+    "jest": "^23.6.0",
     "nodemon": "^1.18.6"
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }

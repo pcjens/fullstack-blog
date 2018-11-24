@@ -1,4 +1,4 @@
-const http = require('http')
+require('http')
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
@@ -14,7 +14,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 const MONGODB_URI = process.env.MONGODB_URI
 // Hide the password for display in stdout
-const MONGODB_URI_DISPLAY = MONGODB_URI.replace(/\:[^//](.*)\@/, ':***@')
+const MONGODB_URI_DISPLAY = MONGODB_URI.replace(/:[^//](.*)@/, ':***@')
 mongoose
   .connect(MONGODB_URI, { useNewUrlParser: true })
   .then(() => console.log('connected to database:', MONGODB_URI_DISPLAY))
