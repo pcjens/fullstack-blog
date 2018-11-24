@@ -59,7 +59,21 @@ describe('api responses', () => {
     await api.get('/api/blogs')
       .expect(200)
       .expect('Content-Type', /application\/json/)
-      .expect((res) => res.body.length === blogs.length)
+  })
+
+  test('adding a blog works', async () => {
+    const initialState = await api.get('/api/blogs')
+    await api.post('/api/blogs')
+      .send({
+        title: 'Post testing',
+        author: 'Tester',
+        url: 'http://example.com/1970/01/01/post-testing',
+        likes: 3,
+      })
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+    const modifiedState = await api.get('/api/blogs')
+    expect(modifiedState.body.length).toBe(initialState.body.length + 1)
   })
 })
 
