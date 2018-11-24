@@ -1,5 +1,7 @@
 const logger = (req, res, next) => {
-  console.log(req.method, req.path, '-', req.body)
+  if (process.env.NODE_ENV !== 'test') {
+    console.log(req.method, req.path, '-', req.body)
+  }
   next()
 }
 
