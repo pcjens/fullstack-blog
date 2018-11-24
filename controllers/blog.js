@@ -11,7 +11,9 @@ blogRouter.get('/', (request, response) => {
 })
 
 blogRouter.post('/', (request, response) => {
-  const blog = new Blog(request.body)
+  const newBlog = { ...request.body }
+  newBlog.likes |= 0
+  const blog = new Blog(newBlog)
 
   blog
     .save()

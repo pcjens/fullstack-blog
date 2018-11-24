@@ -75,6 +75,18 @@ describe('api responses', () => {
     const modifiedState = await api.get('/api/blogs')
     expect(modifiedState.body.length).toBe(initialState.body.length + 1)
   })
+
+  test('default likes to zero', async () => {
+    const newBlog = await api.post('/api/blogs')
+      .send({
+        title: 'Default like amount testing',
+        author: 'Tester',
+        url: 'http://example.com/1970/01/02/post-testing',
+      })
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+    expect(newBlog.body.likes).toBe(0)
+  })
 })
 
 beforeAll(async () => {
