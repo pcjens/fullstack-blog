@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --verbose",
-    "watch": "nodemon index.js",
+    "start": "NODE_ENV=production node index.js",
+    "test": "NODE_ENV=test jest --verbose",
+    "watch": "NODE_ENV=development nodemon index.js",
     "lint": "eslint ."
   },
   "repository": {

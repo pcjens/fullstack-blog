@@ -16,8 +16,8 @@ const mostBlogs = (blogs) => {
     .sort((a, b) => authors[b] - authors[a])
     .map(author => {
       return {
-        "author": author,
-        "blogs": authors[author]
+        'author': author,
+        'blogs': authors[author]
       }
     })[0]
 }
@@ -32,8 +32,8 @@ const mostLikes = (blogs) => {
     .sort((a, b) => authors[b] - authors[a])
     .map(author => {
       return {
-        "author": author,
-        "likes": authors[author]
+        'author': author,
+        'likes': authors[author]
       }
     })[0]
 }
