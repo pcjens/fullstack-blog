@@ -13,6 +13,8 @@ blogRouter.get('/', (request, response) => {
 blogRouter.post('/', (request, response) => {
   const newBlog = { ...request.body }
   newBlog.likes |= 0
+  if (!newBlog.title) return response.status(400).send({ error: 'title missing' })
+  if (!newBlog.url) return response.status(400).send({ error: 'url missing' })
   const blog = new Blog(newBlog)
 
   blog

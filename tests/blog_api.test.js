@@ -87,6 +87,24 @@ describe('api responses', () => {
       .expect('Content-Type', /application\/json/)
     expect(newBlog.body.likes).toBe(0)
   })
+
+  test('blog titles are mandatory', async () => {
+    await api.post('/api/blogs')
+      .send({
+        author: 'Tester',
+        url: 'http://example.com/1970/01/02/a-blog-without-a-title',
+      })
+      .expect(400)
+  })
+
+  test('blog urls are mandatory', async () => {
+    await api.post('/api/blogs')
+      .send({
+        title: 'A post without an url!',
+        author: 'Tester',
+      })
+      .expect(400)
+  })
 })
 
 beforeAll(async () => {
