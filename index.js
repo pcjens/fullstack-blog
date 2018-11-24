@@ -5,41 +5,28 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const mongoose = require('mongoose')
 
+const middleware = require('./utils/middleware')
+const blogRouter = require('./controllers/blog')
+
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config()
 }
 
-const Blog = mongoose.model('Blog', {
-  title: String,
-  author: String,
-  url: String,
-  likes: Number
-})
-
-module.exports = Blog
+const MONGODB_URI = process.env.MONGODB_URI
+// Hide the password for display in stdout
+const MONGODB_URI_DISPLAY = MONGODB_URI.replace(/\:[^//](.*)\@/, ':***@')
+mongoose
+  .connect(MONGODB_URI, { useNewUrlParser: true })
+  .then(() => console.log('connected to database:', MONGODB_URI_DISPLAY))
+  .catch(err => console.log(err))
 
 app.use(cors())
 app.use(bodyParser.json())
+app.use(express.static('build'))
 
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true })
-
-app.get('/api/blogs', (request, response) => {
-  Blog
-    .find({})
-    .then(blogs => {
-      response.json(blogs)
-    })
-})
-
-app.post('/api/blogs', (request, response) => {
-  const blog = new Blog(request.body)
-
-  blog
-    .save()
-    .then(result => {
-      response.status(201).json(result)
-    })
-})
+app.use(middleware.logger)
+app.use('/api/blogs', blogRouter)
+app.use(middleware.error)
 
 const PORT = 3003
 app.listen(PORT, () => {
