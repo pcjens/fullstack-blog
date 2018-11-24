@@ -6,6 +6,22 @@ const favoriteBlog = (blogs) => {
   return blogs.sort((a, b) => b.likes - a.likes)[0]
 }
 
+const mostBlogs = (blogs) => {
+  const authors = {}
+  blogs.forEach(blog => {
+    if (!authors[blog.author]) authors[blog.author] = 1
+    else authors[blog.author] += 1
+  })
+  return Object.keys(authors)
+    .sort((a, b) => authors[b] - authors[a])
+    .map(author => {
+      return {
+        "author": author,
+        "blogs": authors[author]
+      }
+    })[0]
+}
+
 module.exports = {
-  totalLikes, favoriteBlog
+  totalLikes, favoriteBlog, mostBlogs
 }
