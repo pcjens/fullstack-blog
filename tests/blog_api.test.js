@@ -107,6 +107,16 @@ describe('api responses', () => {
       .expect(400)
   })
 
+  test('updating likes works', async () => {
+    const initialState = await helper.blogsInDb()
+    const targetBlog = initialState[0]
+    await api.put('/api/blogs/' + targetBlog._id)
+      .send({ 'likes': 400 })
+      .expect(200)
+    const modifiedState = await helper.blogsInDb()
+    expect(modifiedState.filter(blog => blog._id === targetBlog._id).map(blog => blog.likes)).toContain(400)
+  })
+
   test('default likes to zero', async () => {
     const newBlog = await api.post('/api/blogs')
       .send({
