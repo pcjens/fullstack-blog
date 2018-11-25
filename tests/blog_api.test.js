@@ -1,7 +1,8 @@
 const supertest = require('supertest')
 const { app, server } = require('../index')
 const api = supertest(app)
-const Blog = require('../models/blog.js')
+const helper = require('./test_helper')
+const Blog = require('../models/blog')
 
 const blogs = [
   {
@@ -56,24 +57,36 @@ const blogs = [
 
 describe('api responses', () => {
   test('blogs are returned', async () => {
-    await api.get('/api/blogs')
+    const initialState = await helper.blogsInDb()
+    const res = await api.get('/api/blogs')
       .expect(200)
       .expect('Content-Type', /application\/json/)
+    expect(res.body.length).toBe(initialState.length)
+
+    const returnedBlogs = res.body.map(helper.format)
+    initialState.forEach(blog => {
+      expect(returnedBlogs).toContainEqual(blog)
+    })
   })
 
   test('adding a blog works', async () => {
-    const initialState = await api.get('/api/blogs')
+    const blog = {
+      title: 'Post testing',
+      author: 'Tester',
+      url: 'http://example.com/1970/01/01/post-testing',
+      likes: 3,
+    }
+    const initialState = await helper.blogsInDb()
+
     await api.post('/api/blogs')
-      .send({
-        title: 'Post testing',
-        author: 'Tester',
-        url: 'http://example.com/1970/01/01/post-testing',
-        likes: 3,
-      })
+      .send(blog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
-    const modifiedState = await api.get('/api/blogs')
-    expect(modifiedState.body.length).toBe(initialState.body.length + 1)
+    const modifiedState = await helper.blogsInDb()
+
+    expect(modifiedState.length).toBe(initialState.length + 1)
+    expect(initialState.map(blog => blog.url)).not.toContain(blog.url)
+    expect(modifiedState.map(blog => blog.url)).toContain(blog.url)
   })
 
   test('default likes to zero', async () => {
@@ -107,7 +120,7 @@ describe('api responses', () => {
   })
 })
 
-beforeAll(async () => {
+beforeEach(async () => {
   await Blog.remove({})
 
   await Promise.all(
