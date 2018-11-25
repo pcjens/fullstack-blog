@@ -2,6 +2,7 @@ const Blog = require('../models/blog')
 
 const format = (blog) => {
   return {
+    _id: blog._id.toString(),
     title: blog.title,
     author: blog.author,
     url: blog.url,
@@ -14,6 +15,13 @@ const blogsInDb = async () => {
   return blogs.map(format)
 }
 
+const nonExistentId = async() => {
+  const blog = new Blog()
+  await blog.save()
+  await blog.remove()
+  return format(blog)._id
+}
+
 module.exports = {
-  blogsInDb, format
+  blogsInDb, format, nonExistentId
 }

@@ -17,6 +17,7 @@ mongoose
     }
   })
   .catch(err => console.log(err))
+mongoose.set('useFindAndModify', false)
 
 app.use(cors())
 app.use(bodyParser.json())

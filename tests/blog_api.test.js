@@ -89,6 +89,24 @@ describe('api responses', () => {
     expect(modifiedState.map(blog => blog.url)).toContain(blog.url)
   })
 
+  test('deleting a blog works', async () => {
+    const initialState = await helper.blogsInDb()
+    const deletedBlog = initialState[0]
+
+    await api.delete('/api/blogs/' + deletedBlog._id)
+      .expect(204)
+    const modifiedState = await helper.blogsInDb()
+
+    expect(modifiedState.map(blog => blog._id)).not.toContain(deletedBlog._id)
+    expect(modifiedState.length).toBe(initialState.length - 1)
+  })
+
+  test('deleting a non-existent blog doesn\'t work', async () => {
+    const nonExistentId = helper.nonExistentId()
+    await api.delete('/api/blogs/' + nonExistentId)
+      .expect(400)
+  })
+
   test('default likes to zero', async () => {
     const newBlog = await api.post('/api/blogs')
       .send({
