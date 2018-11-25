@@ -160,10 +160,21 @@ describe('blog api responses', () => {
   })
 
   test('deleting a blog works', async () => {
+    const res = await api.post('/api/blogs')
+      .set('Authorization', rootUserToken)
+      .send({
+        'author': 'Another User',
+        'title': 'Some Blog',
+        'url': 'example.com/another-user-approaches'
+      })
+      .expect(201)
+    const deletedBlog = res.body
+
     const initialState = await helper.blogsInDb()
-    const deletedBlog = initialState[0]
+    expect(initialState.map(blog => blog.id)).toContain(deletedBlog.id)
 
     await api.delete('/api/blogs/' + deletedBlog.id)
+      .set('Authorization', rootUserToken)
       .expect(204)
     const modifiedState = await helper.blogsInDb()
 
@@ -171,9 +182,49 @@ describe('blog api responses', () => {
     expect(modifiedState.length).toBe(initialState.length - 1)
   })
 
+  test('deleting someone else\'s blog doesn\'t work', async () => {
+    const newUser = {
+      'username': 'anotheruser',
+      'password': 'boop',
+      'name': 'Another User'
+    }
+    await api.post('/api/users')
+      .send(newUser)
+      .expect(201)
+    const loginRes = await api.post('/api/login')
+      .send({
+        'username': newUser.username,
+        'password': newUser.password
+      })
+      .expect(200)
+    const newUserToken = 'bearer ' + loginRes.body.token
+    expect(newUserToken).toBeDefined()
+    const res = await api.post('/api/blogs')
+      .set('Authorization', newUserToken)
+      .send({
+        'author': 'Another User',
+        'title': 'Some Blog',
+        'url': 'example.com/another-user-approaches'
+      })
+      .expect(201)
+    const deletedBlog = res.body
+
+    const initialState = await helper.blogsInDb()
+    expect(initialState.map(blog => blog.id)).toContain(deletedBlog.id)
+
+    await api.delete('/api/blogs/' + deletedBlog.id)
+      .set('Authorization', rootUserToken)
+      .expect(401)
+    const modifiedState = await helper.blogsInDb()
+
+    expect(modifiedState.map(blog => blog.id)).toContain(deletedBlog.id)
+    expect(modifiedState.length).toBe(initialState.length)
+  })
+
   test('deleting a non-existent blog doesn\'t work', async () => {
     const nonExistentId = helper.nonExistentId()
     await api.delete('/api/blogs/' + nonExistentId)
+      .set('Authorization', rootUserToken)
       .expect(400)
   })
 
@@ -255,8 +306,7 @@ describe('blog api responses', () => {
     await Promise.all(
       blogs
         .map(blog => new Blog(blog))
-        .map(blog => blog.save())
-    )
+        .map(blog => blog.save()))
   })
 })
 
