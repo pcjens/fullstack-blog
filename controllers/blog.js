@@ -1,27 +1,57 @@
 const Blog = require('../models/blog')
+const User = require('../models/user')
 
 const blogRouter = require('express').Router()
 
-blogRouter.get('/', (request, response) => {
-  Blog
-    .find({})
-    .then(blogs => {
-      response.json(blogs.map(Blog.format))
-    })
+blogRouter.get('/', async (request, response) => {
+  try {
+    const blogs = await Blog
+      .find({})
+      .populate('user', { username: 1, name: 1 })
+    response.json(blogs.map(Blog.format))
+  } catch (exception) {
+    response.status(500).end()
+  }
 })
 
-blogRouter.post('/', (request, response) => {
-  const newBlog = { ...request.body }
-  newBlog.likes |= 0
-  if (!newBlog.title) return response.status(400).send({ error: 'title missing' })
-  if (!newBlog.url) return response.status(400).send({ error: 'url missing' })
-  const blog = new Blog(newBlog)
+blogRouter.post('/', async (request, response) => {
+  try {
+    const body = request.body
+    const newBlog = {
+      likes: body.likes | 0,
+      title: body.title,
+      url: body.url,
+      author: body.author,
+    }
 
-  blog
-    .save()
-    .then(result => {
-      response.status(201).json(Blog.format(result))
-    })
+    if (newBlog.title === undefined) {
+      return response.status(400).send({ error: 'title missing' })
+    }
+    if (newBlog.url === undefined) {
+      return response.status(400).send({ error: 'url missing' })
+    }
+    if (body.userId === undefined) {
+      return response.status(400).send({ error: 'userId missing' })
+    }
+
+    let user
+    try {
+      user = await User.findById(body.userId)
+    } catch (exception) {
+      return response.status(400).json({ error: 'userId not found in the database' })
+    }
+
+    newBlog.user = user._id
+    const blog = new Blog(newBlog)
+    const result = await blog.save()
+    user.blogs = user.blogs.concat(result._id)
+    await user.save()
+
+    return response.status(201).json(Blog.format(result))
+  } catch (exception) {
+    console.log(exception)
+    return response.status(500).end()
+  }
 })
 
 blogRouter.delete('/:id', async (request, response) => {

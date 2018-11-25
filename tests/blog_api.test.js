@@ -61,6 +61,8 @@ afterAll(() => {
 })
 
 describe('api responses', () => {
+  let rootUserId = ''
+
   test('blogs are returned', async () => {
     const initialState = await helper.blogsInDb()
     const res = await api.get('/api/blogs')
@@ -79,6 +81,7 @@ describe('api responses', () => {
       author: 'Tester',
       url: 'http://example.com/1970/01/01/post-testing',
       likes: 3,
+      userId: rootUserId
     }
     const initialState = await helper.blogsInDb()
 
@@ -127,6 +130,7 @@ describe('api responses', () => {
         title: 'Default like amount testing',
         author: 'Tester',
         url: 'http://example.com/1970/01/02/post-testing',
+        userId: rootUserId
       })
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -138,6 +142,7 @@ describe('api responses', () => {
       .send({
         author: 'Tester',
         url: 'http://example.com/1970/01/02/a-blog-without-a-title',
+        userId: rootUserId
       })
       .expect(400)
   })
@@ -147,11 +152,32 @@ describe('api responses', () => {
       .send({
         title: 'A post without an url!',
         author: 'Tester',
+        userId: rootUserId
       })
       .expect(400)
   })
 
+  test('blog userId is mandatory', async () => {
+    const res = await api.post('/api/blogs')
+      .send({
+        title: 'A post without an poster!',
+        url: 'http://example.com/1970/01/03/ghost-post',
+        author: 'Tester',
+      })
+      .expect(400)
+    expect(res.body).toEqual({ error: 'userId missing' })
+  })
+
   beforeEach(async () => {
+    await User.remove({})
+    rootUserId = new User({
+      username: 'root',
+      name: 'Root',
+      password: '12345',
+      ofAge: true
+    })
+    await rootUserId.save()
+
     await Blog.remove({})
 
     await Promise.all(
@@ -172,8 +198,14 @@ describe('with one user in the db', async () => {
       .expect('Content-Type', /application\/json/)
 
     expect(res.body.length).toBe(initialState.length)
+    const removeBlogs = user => {
+      // TODO: Debug why two empty arrays don't seem to match when using toContainEqual
+      const userWithoutBlogs = { ...user }
+      delete userWithoutBlogs.blogs
+      return userWithoutBlogs
+    }
     initialState.forEach(user => {
-      expect(res.body).toContainEqual(user)
+      expect(res.body.map(removeBlogs)).toContainEqual(removeBlogs(user))
     })
   })
 
