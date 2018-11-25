@@ -60,8 +60,71 @@ afterAll(() => {
   server.close()
 })
 
-describe('api responses', () => {
-  let rootUserId = ''
+describe('login api responses', () => {
+  let rootUser = {}
+
+  beforeAll(async () => {
+    await User.remove({})
+    rootUser = {
+      username: 'root',
+      name: 'Root',
+      password: '12345',
+      ofAge: true
+    }
+    await api
+      .post('/api/users')
+      .send(rootUser)
+      .expect(201)
+  })
+
+  test('logging in works', async () => {
+    const loginRes = await api
+      .post('/api/login')
+      .send({
+        'username': rootUser.username,
+        'password': rootUser.password
+      })
+      .expect(200)
+    expect(loginRes.body.token).toBeDefined()
+    expect(loginRes.body.username).toBeDefined()
+    expect(loginRes.body.name).toBeDefined()
+    expect(loginRes.body.ofAge).toBeDefined()
+  })
+
+  test('logging in without username doesn\'t work', async () => {
+    const loginRes = await api
+      .post('/api/login')
+      .send({
+        'password': rootUser.password
+      })
+      .expect(400)
+    expect(loginRes.body).toEqual({ error: 'username missing' })
+  })
+
+  test('logging in without a password doesn\'t work', async () => {
+    const loginRes = await api
+      .post('/api/login')
+      .send({
+        'username': rootUser.username
+      })
+      .expect(400)
+    expect(loginRes.body).toEqual({ error: 'password missing' })
+  })
+
+  test('logging in with the wrong password doesn\'t work', async () => {
+    const loginRes = await api
+      .post('/api/login')
+      .send({
+        'username': rootUser.username,
+        'password': 'wrong'
+      })
+      .expect(401)
+    expect(loginRes.body).toEqual({ error: 'invalid username or password' })
+  })
+})
+
+describe('blog api responses', () => {
+  let rootUserToken = ''
 
   test('blogs are returned', async () => {
     const initialState = await helper.blogsInDb()
@@ -80,12 +143,12 @@ describe('api responses', () => {
       title: 'Post testing',
       author: 'Tester',
       url: 'http://example.com/1970/01/01/post-testing',
-      likes: 3,
-      userId: rootUserId
+      likes: 3
     }
     const initialState = await helper.blogsInDb()
 
     await api.post('/api/blogs')
+      .set('Authorization', rootUserToken)
       .send(blog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -126,11 +189,11 @@ describe('api responses', () => {
 
   test('default likes to zero', async () => {
     const newBlog = await api.post('/api/blogs')
+      .set('Authorization', rootUserToken)
       .send({
         title: 'Default like amount testing',
         author: 'Tester',
         url: 'http://example.com/1970/01/02/post-testing',
-        userId: rootUserId
       })
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -139,44 +202,53 @@ describe('api responses', () => {
 
   test('blog titles are mandatory', async () => {
     await api.post('/api/blogs')
+      .set('Authorization', rootUserToken)
       .send({
         author: 'Tester',
         url: 'http://example.com/1970/01/02/a-blog-without-a-title',
-        userId: rootUserId
       })
       .expect(400)
   })
 
   test('blog urls are mandatory', async () => {
     await api.post('/api/blogs')
+      .set('Authorization', rootUserToken)
       .send({
         title: 'A post without an url!',
-        author: 'Tester',
-        userId: rootUserId
+        author: 'Tester'
       })
       .expect(400)
   })
 
-  test('blog userId is mandatory', async () => {
+  test('blog authorization is mandatory', async () => {
     const res = await api.post('/api/blogs')
       .send({
         title: 'A post without an poster!',
         url: 'http://example.com/1970/01/03/ghost-post',
         author: 'Tester',
       })
-      .expect(400)
-    expect(res.body).toEqual({ error: 'userId missing' })
+      .expect(401)
+    expect(res.body).toEqual({ error: 'token missing or invalid' })
   })
 
   beforeEach(async () => {
     await User.remove({})
-    rootUserId = new User({
+    const rootUser = {
       username: 'root',
       name: 'Root',
       password: '12345',
       ofAge: true
-    })
-    await rootUserId.save()
+    }
+    await api
+      .post('/api/users')
+      .send(rootUser)
+    const loginRes = await api
+      .post('/api/login')
+      .send({
+        'username': 'root',
+        'password': '12345'
+      })
+    rootUserToken = 'bearer ' + loginRes.body.token
 
     await Blog.remove({})
 
@@ -188,7 +260,7 @@ describe('api responses', () => {
   })
 })
 
-describe('with one user in the db', async () => {
+describe('user api responses', async () => {
   test('getting users works', async () => {
     const initialState = await helper.usersInDb()
 

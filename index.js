@@ -9,6 +9,7 @@ const config = require('./utils/config')
 const middleware = require('./utils/middleware')
 const blogRouter = require('./controllers/blog')
 const usersRouter = require('./controllers/users')
+const loginRouter = require('./controllers/login')
 
 mongoose
   .connect(config.mongoUrl, { useNewUrlParser: true })
@@ -27,6 +28,7 @@ app.use(express.static('build'))
 app.use(middleware.logger)
 app.use('/api/blogs', blogRouter)
 app.use('/api/users', usersRouter)
+app.use('/api/login', loginRouter)
 app.use(middleware.error)
 
 const server = http.createServer(app)

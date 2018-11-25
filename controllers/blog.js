@@ -1,7 +1,17 @@
+const jwt = require('jsonwebtoken')
 const Blog = require('../models/blog')
 const User = require('../models/user')
 
 const blogRouter = require('express').Router()
+
+const getToken = (req) => {
+  const auth = req.get('authorization')
+  if (auth !== undefined && auth.toLowerCase().startsWith('bearer ')) {
+    return auth.substring(7)
+  } else {
+    return null
+  }
+}
 
 blogRouter.get('/', async (request, response) => {
   try {
@@ -16,7 +26,20 @@ blogRouter.get('/', async (request, response) => {
 
 blogRouter.post('/', async (request, response) => {
   try {
+    const token = getToken(request)
+    if (!token) {
+      return response.status(401).json({ error: 'token missing or invalid' })
+    }
+
+    const decodedToken = jwt.verify(token, process.env.SECRET)
+    const userId = decodedToken.id
+
+    if (!userId) {
+      return response.status(401).json({ error: 'token invalid' })
+    }
+
     const body = request.body
+
     const newBlog = {
       likes: body.likes | 0,
       title: body.title,
@@ -30,16 +53,8 @@ blogRouter.post('/', async (request, response) => {
     if (newBlog.url === undefined) {
       return response.status(400).send({ error: 'url missing' })
     }
-    if (body.userId === undefined) {
-      return response.status(400).send({ error: 'userId missing' })
-    }
 
-    let user
-    try {
-      user = await User.findById(body.userId)
-    } catch (exception) {
-      return response.status(400).json({ error: 'userId not found in the database' })
-    }
+    let user = await User.findById(userId)
 
     newBlog.user = user._id
     const blog = new Blog(newBlog)
@@ -49,8 +64,12 @@ blogRouter.post('/', async (request, response) => {
 
     return response.status(201).json(Blog.format(result))
   } catch (exception) {
-    console.log(exception)
-    return response.status(500).end()
+    if (exception.name === 'JsonWebTokenError') {
+      return response.status(401).json({ error: exception.message })
+    } else {
+      console.log(exception)
+      return response.status(500).end()
+    }
   }
 })
 
