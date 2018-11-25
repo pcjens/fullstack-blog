@@ -11,10 +11,13 @@ usersRouter.post('/', async (req, res) => {
   try {
     const body = req.body
 
-    if (!body.password) return res.status(400).json({ error: 'missing field: password' })
     if (!body.username) return res.status(400).json({ error: 'missing field: username' })
     if (!body.name) return res.status(400).json({ error: 'missing field: name' })
-    if (body.ofAge === undefined) return res.status(400).json({ error: 'missing field: ofAge' })
+    if (body.ofAge === undefined) body.ofAge = true
+    if (!body.password) return res.status(400).json({ error: 'missing field: password' })
+    if (body.password.length <= 3) {
+      return res.status(400).json({ error: 'password should be longer than 3 characters' })
+    }
 
     const othersWithTheSameUsername = await User.find({ username: body.username })
     if (othersWithTheSameUsername.length > 0) {
@@ -35,7 +38,7 @@ usersRouter.post('/', async (req, res) => {
 
     const savedUser = await user.save()
 
-    return res.json(User.format(savedUser))
+    return res.status(201).json(User.format(savedUser))
   } catch (exception) {
     return res.status(500).end()
   }

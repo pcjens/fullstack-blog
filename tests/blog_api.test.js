@@ -191,7 +191,7 @@ describe('with one user in the db', async () => {
     await api
       .post('/api/users')
       .send(newUser)
-      .expect(200)
+      .expect(201)
       .expect('Content-Type', /application\/json/)
 
     const modifiedState = await helper.usersInDb()
@@ -214,9 +214,50 @@ describe('with one user in the db', async () => {
       .expect(400)
       .expect('Content-Type', /application\/json/)
 
-    expect(res.body).toEqual({ error: 'a user with username \'root\' already exists' })
+    expect(res.body).toEqual({ error: `a user with username '${newUser.username}' already exists` })
     const modifiedState = await helper.usersInDb()
     expect(modifiedState.length).toBe(initialState.length)
+  })
+
+  test('user creation doesn\'t work with passwords too short', async () => {
+    const initialState = await helper.usersInDb()
+
+    const newUser = {
+      username: 'userwithabadpassword',
+      name: 'Mr. Bad Pass',
+      password: '123',
+      ofAge: false
+    }
+    expect(initialState.map(user => user.username)).not.toContain(newUser.username)
+
+    const res = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    expect(res.body).toEqual({ error: 'password should be longer than 3 characters' })
+    const modifiedState = await helper.usersInDb()
+    expect(modifiedState.length).toBe(initialState.length)
+  })
+
+  test('ofAge is true by default', async () => {
+    const initialState = await helper.usersInDb()
+
+    const newUser = {
+      username: 'agelessone',
+      name: 'The Eternal One',
+      password: 'cthulhu'
+    }
+    const res = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
+    const modifiedState = await helper.usersInDb()
+    expect(modifiedState.length).toBe(initialState.length + 1)
+    expect(res.body.ofAge).toBe(true)
   })
 
   beforeEach(async () => {
