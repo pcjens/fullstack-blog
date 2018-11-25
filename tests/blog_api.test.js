@@ -3,6 +3,7 @@ const { app, server } = require('../index')
 const api = supertest(app)
 const helper = require('./test_helper')
 const Blog = require('../models/blog')
+const User = require('../models/user')
 
 const blogs = [
   {
@@ -55,6 +56,10 @@ const blogs = [
   }
 ]
 
+afterAll(() => {
+  server.close()
+})
+
 describe('api responses', () => {
   test('blogs are returned', async () => {
     const initialState = await helper.blogsInDb()
@@ -63,9 +68,8 @@ describe('api responses', () => {
       .expect('Content-Type', /application\/json/)
     expect(res.body.length).toBe(initialState.length)
 
-    const returnedBlogs = res.body.map(helper.format)
     initialState.forEach(blog => {
-      expect(returnedBlogs).toContainEqual(blog)
+      expect(res.body).toContainEqual(blog)
     })
   })
 
@@ -93,11 +97,11 @@ describe('api responses', () => {
     const initialState = await helper.blogsInDb()
     const deletedBlog = initialState[0]
 
-    await api.delete('/api/blogs/' + deletedBlog._id)
+    await api.delete('/api/blogs/' + deletedBlog.id)
       .expect(204)
     const modifiedState = await helper.blogsInDb()
 
-    expect(modifiedState.map(blog => blog._id)).not.toContain(deletedBlog._id)
+    expect(modifiedState.map(blog => blog.id)).not.toContain(deletedBlog.id)
     expect(modifiedState.length).toBe(initialState.length - 1)
   })
 
@@ -110,11 +114,11 @@ describe('api responses', () => {
   test('updating likes works', async () => {
     const initialState = await helper.blogsInDb()
     const targetBlog = initialState[0]
-    await api.put('/api/blogs/' + targetBlog._id)
+    await api.put('/api/blogs/' + targetBlog.id)
       .send({ 'likes': 400 })
       .expect(200)
     const modifiedState = await helper.blogsInDb()
-    expect(modifiedState.filter(blog => blog._id === targetBlog._id).map(blog => blog.likes)).toContain(400)
+    expect(modifiedState.filter(blog => blog.id === targetBlog.id).map(blog => blog.likes)).toContain(400)
   })
 
   test('default likes to zero', async () => {
@@ -146,18 +150,78 @@ describe('api responses', () => {
       })
       .expect(400)
   })
+
+  beforeEach(async () => {
+    await Blog.remove({})
+
+    await Promise.all(
+      blogs
+        .map(blog => new Blog(blog))
+        .map(blog => blog.save())
+    )
+  })
 })
 
-beforeEach(async () => {
-  await Blog.remove({})
+describe('with one user in the db', async () => {
+  test('getting users works', async () => {
+    const initialState = await helper.usersInDb()
 
-  await Promise.all(
-    blogs
-      .map(blog => new Blog(blog))
-      .map(blog => blog.save())
-  )
-})
+    const res = await api
+      .get('/api/users')
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
 
-afterAll(() => {
-  server.close()
+    expect(res.body.length).toBe(initialState.length)
+    initialState.forEach(user => {
+      expect(res.body).toContainEqual(user)
+    })
+  })
+
+  test('user creation works with a unique username', async () => {
+    const initialState = await helper.usersInDb()
+
+    const newUser = {
+      username: 'newuser',
+      name: 'New User',
+      password: '12345',
+      ofAge: false
+    }
+    expect(initialState.map(user => user.username)).not.toContain(newUser.username)
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+
+    const modifiedState = await helper.usersInDb()
+    expect(modifiedState.length).toBe(initialState.length + 1)
+    expect(modifiedState.map(user => user.username)).toContain(newUser.username)
+  })
+
+  test('user creation doesn\'t work with a username already in the db', async () => {
+    const initialState = await helper.usersInDb()
+
+    const newUser = {
+      username: 'root',
+      name: '1337 H4x0r',
+      password: '54321',
+      ofAge: true
+    }
+    const res = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    expect(res.body).toEqual({ error: 'a user with username \'root\' already exists' })
+    const modifiedState = await helper.usersInDb()
+    expect(modifiedState.length).toBe(initialState.length)
+  })
+
+  beforeEach(async () => {
+    await User.remove({})
+    const user = new User({ username: 'root', passwordHash: 'secret', name: 'Root', ofAge: true })
+    await user.save()
+  })
 })

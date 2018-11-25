@@ -1,0 +1,44 @@
+const bcrypt = require('bcrypt')
+const usersRouter = require('express').Router()
+const User = require('../models/user')
+
+usersRouter.get('/', async(req, res) => {
+  const users = await User.find({})
+  res.json(users.map(User.format))
+})
+
+usersRouter.post('/', async (req, res) => {
+  try {
+    const body = req.body
+
+    if (!body.password) return res.status(400).json({ error: 'missing field: password' })
+    if (!body.username) return res.status(400).json({ error: 'missing field: username' })
+    if (!body.name) return res.status(400).json({ error: 'missing field: name' })
+    if (body.ofAge === undefined) return res.status(400).json({ error: 'missing field: ofAge' })
+
+    const othersWithTheSameUsername = await User.find({ username: body.username })
+    if (othersWithTheSameUsername.length > 0) {
+      return res.status(400).json({
+        error: `a user with username '${body.username}' already exists`
+      })
+    }
+
+    const saltRounds = 10
+    const passwordHash = await bcrypt.hash(body.password, saltRounds)
+
+    const user = new User({
+      username: body.username,
+      name: body.name,
+      ofAge: body.ofAge,
+      passwordHash
+    })
+
+    const savedUser = await user.save()
+
+    return res.json(User.format(savedUser))
+  } catch (exception) {
+    return res.status(500).end()
+  }
+})
+
+module.exports = usersRouter

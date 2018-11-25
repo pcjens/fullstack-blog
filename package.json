@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/pcjens/fullstack-blog#readme",
   "dependencies": {
+    "bcrypt": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^6.1.0",
     "express": "^4.16.4",

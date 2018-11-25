@@ -6,7 +6,7 @@ blogRouter.get('/', (request, response) => {
   Blog
     .find({})
     .then(blogs => {
-      response.json(blogs)
+      response.json(blogs.map(Blog.format))
     })
 })
 
@@ -20,7 +20,7 @@ blogRouter.post('/', (request, response) => {
   blog
     .save()
     .then(result => {
-      response.status(201).json(result)
+      response.status(201).json(Blog.format(result))
     })
 })
 
@@ -38,7 +38,7 @@ blogRouter.put('/:id', async (request, response) => {
     let updated = {}
     if (request.body.likes) updated.likes = request.body.likes
     const updatedBlog = await Blog.findByIdAndUpdate(request.params.id, updated, { new: true })
-    response.json(updatedBlog)
+    response.json(Blog.format(updatedBlog))
   } catch (exception) {
     response.status(400).json({ error: 'malformatted id' })
   }
