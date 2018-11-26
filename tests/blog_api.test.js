@@ -182,6 +182,26 @@ describe('blog api responses', () => {
     expect(modifiedState.length).toBe(initialState.length - 1)
   })
 
+  test('deleting a blog owned by no-one works', async () => {
+    const deletedBlog = new Blog({
+      'author': 'Another User',
+      'title': 'Some Blog',
+      'url': 'example.com/another-user-approaches'
+    })
+    await deletedBlog.save()
+
+    const initialState = await helper.blogsInDb()
+    expect(initialState.map(blog => blog.id)).toContain(deletedBlog.id)
+
+    await api.delete('/api/blogs/' + deletedBlog.id)
+      .set('Authorization', rootUserToken)
+      .expect(204)
+    const modifiedState = await helper.blogsInDb()
+
+    expect(modifiedState.map(blog => blog.id)).not.toContain(deletedBlog.id)
+    expect(modifiedState.length).toBe(initialState.length - 1)
+  })
+
   test('deleting someone else\'s blog doesn\'t work', async () => {
     const newUser = {
       'username': 'anotheruser',
