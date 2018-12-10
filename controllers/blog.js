@@ -105,15 +105,6 @@ blogRouter.put('/:id', async (request, response) => {
   }
 })
 
-blogRouter.get('/:id/comments', async (request, response) => {
-  try {
-    const blog = await Blog.findById(request.params.id)
-    response.json(blog.comments)
-  } catch (exception) {
-    response.status(400).json({ error: 'malformatted id' })
-  }
-})
-
 blogRouter.post('/:id/comments', async (request, response) => {
   try {
     if (request.body.comment === undefined)
