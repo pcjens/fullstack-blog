@@ -105,4 +105,27 @@ blogRouter.put('/:id', async (request, response) => {
   }
 })
 
+blogRouter.get('/:id/comments', async (request, response) => {
+  try {
+    const blog = await Blog.findById(request.params.id)
+    response.json(blog.comments)
+  } catch (exception) {
+    response.status(400).json({ error: 'malformatted id' })
+  }
+})
+
+blogRouter.post('/:id/comments', async (request, response) => {
+  try {
+    if (request.body.comment === undefined)
+      return response.status(400).json({ error: 'missing comment' })
+
+    const blog = await Blog.findById(request.params.id)
+    const comments = blog.comments.concat(request.body.comment)
+    const updatedBlog = await Blog.findByIdAndUpdate(request.params.id, { comments }, { new: true })
+    return response.status(201).json(updatedBlog.comments)
+  } catch (exception) {
+    return response.status(400).json({ error: 'malformatted id' })
+  }
+})
+
 module.exports = blogRouter

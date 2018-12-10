@@ -3,7 +3,6 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 let mongoUrl = process.env.MONGODB_URI
-// Hide the password for display in stdout
 let port = process.env.PORT | 3003
 
 if (process.env.NODE_ENV === 'test') {
@@ -11,6 +10,7 @@ if (process.env.NODE_ENV === 'test') {
   mongoUrl = process.env.TEST_MONGODB_URI
 }
 
+// Hide the password for display in stdout
 const mongoUrlDisplay = mongoUrl.replace(/:[^//](.*)@/, ':***@')
 
 module.exports = {
